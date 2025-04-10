@@ -88,8 +88,8 @@ impl MemTable {
     }
 
     /// Get a value by key.
-    pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
-        return Some(self.map.get(_key)?.value().clone());
+    pub fn get(&self, key: &[u8]) -> Option<Bytes> {
+        return Some(self.map.get(key)?.value().clone());
     }
 
     /// Put a key-value pair into the mem-table.
@@ -97,9 +97,9 @@ impl MemTable {
     /// In week 1, day 1, simply put the key-value pair into the skipmap.
     /// In week 2, day 6, also flush the data to WAL.
     /// In week 3, day 5, modify the function to use the batch API.
-    pub fn put(&self, _key: &[u8], _value: &[u8]) -> Result<()> {
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         self.map
-            .insert(Bytes::copy_from_slice(_key), Bytes::copy_from_slice(_value));
+            .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
         Ok(())
     }
 
