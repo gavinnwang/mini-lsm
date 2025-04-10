@@ -17,7 +17,7 @@
 
 use std::ops::Bound;
 use std::path::Path;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -98,6 +98,8 @@ impl MemTable {
     /// In week 2, day 6, also flush the data to WAL.
     /// In week 3, day 5, modify the function to use the batch API.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.approximate_size
+            .fetch_add(key.len() + value.len(), Ordering::Relaxed);
         self.map
             .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
         Ok(())
