@@ -167,7 +167,7 @@ impl LsmStorageInner {
         } {
             self.force_flush_next_imm_memtable()?;
         }
-        todo!()
+        Ok(())
     }
 
     pub(crate) fn spawn_flush_thread(
