@@ -368,10 +368,19 @@ impl LsmStorageInner {
                 table.first_key().as_key_slice(),
                 table.last_key().as_key_slice(),
             ) {
-                iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
-                    table,
-                    KeySlice::from_slice(key),
-                )?));
+                if let Some(bloom) = &table.bloom {
+                    if bloom.may_contain(farmhash::fingerprint32(key)) {
+                        iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
+                            table,
+                            KeySlice::from_slice(key),
+                        )?));
+                    }
+                } else {
+                    iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
+                        table,
+                        KeySlice::from_slice(key),
+                    )?));
+                }
             }
         }
 

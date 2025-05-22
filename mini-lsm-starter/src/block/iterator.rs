@@ -22,6 +22,8 @@ use super::{Block, SIZEOF_U16};
 
 /// Iterates on a block.
 pub struct BlockIterator {
+    /// The first key in the block
+    first_key: KeyVec,
     /// The internal `Block`, wrapped by an `Arc`
     block: Arc<Block>,
     /// The current key, empty represents the iterator is invalid
@@ -30,18 +32,26 @@ pub struct BlockIterator {
     value_range: (usize, usize),
     /// Current index of the key-value pair, should be in range of [0, num_of_elements)
     idx: usize,
-    /// The first key in the block
-    first_key: KeyVec,
+}
+
+impl Block {
+    fn get_first_key(&self) -> Vec<u8> {
+        let mut buf = &self.data[..];
+        buf.get_u16();
+        let key_len = buf.get_u16();
+        let key = &buf[..key_len as usize];
+        key.to_vec()
+    }
 }
 
 impl BlockIterator {
     fn new(block: Arc<Block>) -> Self {
         Self {
+            first_key: KeyVec::from_vec(block.get_first_key()),
             block,
             key: KeyVec::new(),
             value_range: (0, 0),
             idx: 0,
-            first_key: KeyVec::new(),
         }
     }
 
@@ -95,13 +105,15 @@ impl BlockIterator {
         let mut entry = &self.block.data[offset..];
         // Since `get_u16()` will automatically move the ptr 2 bytes ahead here,
         // we don't need to manually advance it
+        let overlap_len = entry.get_u16() as usize;
         let key_len = entry.get_u16() as usize;
-        let key = &entry[..key_len];
+        let key = entry[..key_len].to_vec();
         entry.advance(key_len);
         self.key.clear();
-        self.key.append(key);
+        self.key.append(&self.first_key.raw_ref()[..overlap_len]);
+        self.key.append(&key);
         let value_len = entry.get_u16() as usize;
-        let value_offset_begin = offset + SIZEOF_U16 + key_len + SIZEOF_U16;
+        let value_offset_begin = offset + SIZEOF_U16 + SIZEOF_U16 + key_len + SIZEOF_U16;
         let value_offset_end = value_offset_begin + value_len;
         self.value_range = (value_offset_begin, value_offset_end);
         entry.advance(value_len);
